@@ -1,33 +1,183 @@
-# CamProject
+# Nerves Cam Project
 
-**TODO: Add description**
+Embedded video streaming and detection system built with Nerves, Elixir, and Raspberry Pi 5, connected to a Milesight IP camera.
 
-## Targets
+---
 
-Nerves applications produce images for hardware targets based on the
-`MIX_TARGET` environment variable. If `MIX_TARGET` is unset, `mix` builds an
-image that runs on the host (e.g., your laptop). This is useful for executing
-logic tests, running utilities, and debugging. Other targets are represented by
-a short name like `rpi3` that maps to a Nerves system image for that platform.
-All of this logic is in the generated `mix.exs` and may be customized. For more
-information about targets see:
+## 🚀 Overview
 
-https://hexdocs.pm/nerves/supported-targets.html
+This project implements a complete edge-based video pipeline:
 
-## Getting Started
+* Receives video via RTSP from an IP camera
+* Processes video using FFmpeg
+* Converts RTSP to HLS for web playback
+* Serves a web dashboard from the Raspberry Pi
+* Captures snapshots on demand or via camera events
+* Handles human detection events via HTTP
 
-To start your Nerves app:
-  * `export MIX_TARGET=my_target` or prefix every command with
-    `MIX_TARGET=my_target`. For example, `MIX_TARGET=rpi3`
-  * Install dependencies with `mix deps.get`
-  * Create firmware with `mix firmware`
-  * Burn to an SD card with `mix burn`
+👉 The entire system runs directly on the Raspberry Pi (edge computing).
 
-## Learn more
+---
 
-  * Official docs: https://hexdocs.pm/nerves/getting-started.html
-  * Official website: https://nerves-project.org/
-  * Forum: https://elixirforum.com/c/nerves-forum
-  * Elixir Slack #nerves channel: https://elixir-slack.community/
-  * Elixir Discord #nerves channel: https://discord.gg/elixir
-  * Source: https://github.com/nerves-project/nerves
+## 🧠 Features
+
+* 📺 Live video streaming (RTSP → HLS)
+* 🌐 Web dashboard for monitoring and control
+* 📸 Snapshot capture system
+* 🔔 Event-based detection (camera → HTTP → backend)
+* ⚙️ Stream control (start / stop / restart)
+
+---
+
+## 🏗️ Architecture
+
+### Video Pipeline
+
+```
+Camera (RTSP)
+   ↓
+FFmpeg (Raspberry Pi)
+   ↓
+HLS (/data/hls)
+   ↓
+Web Server (Elixir)
+   ↓
+Browser Dashboard
+```
+
+---
+
+### Detection Flow
+
+```
+Camera detects human
+   ↓
+HTTP request → /api/detection/human
+   ↓
+Snapshotter (FFmpeg)
+   ↓
+JPG image
+   ↓
+DetectionStore (state)
+   ↓
+Dashboard update
+```
+
+---
+
+## 🧩 Tech Stack
+
+* **Elixir / Erlang**
+* **Nerves** (embedded systems)
+* **Raspberry Pi 5**
+* **FFmpeg**
+* **Milesight IP Camera**
+* **HLS (HTTP Live Streaming)**
+* **RTSP**
+
+---
+
+## 📁 Project Structure
+
+* `lib/cam_project/live_stream.ex` → live streaming management
+* `lib/cam_project/web_router.ex` → dashboard + HTTP API
+* `lib/cam_project/snapshotter.ex` → snapshot capture
+* `lib/cam_project/detection_store.ex` → detection state
+* `lib/cam_project/recorder.ex` → recording control
+
+---
+
+## ⚙️ Configuration
+
+Example in `config/target.exs`:
+
+```elixir
+config :cam_project,
+  camera_rtsp_url: "rtsp://admin:password@192.168.1.161:554/main",
+  camera_http_url: "http://192.168.1.161"
+```
+
+---
+
+## 🛠️ Build & Deploy
+
+```bash
+export MIX_TARGET=rpi5
+mix deps.get
+mix compile
+mix firmware
+mix upload <RASPBERRY_IP>
+```
+
+---
+
+## 🌐 Dashboard
+
+Once deployed, access the system at:
+
+```
+http://<RASPBERRY_IP>:4000/
+```
+
+---
+
+## 📦 Requirements
+
+* Raspberry Pi 5
+* Nerves toolchain
+* Network access to the IP camera
+* FFmpeg (ARM64 static build)
+
+---
+
+## ⚠️ Notes
+
+* FFmpeg binaries are **not included** in this repository
+* You must provide your own FFmpeg binary for ARM64
+* Place it according to your deployment setup
+
+---
+
+## 🚨 Current Status
+
+### ✅ Working
+
+* Live streaming (RTSP → HLS)
+* Web dashboard
+* Snapshot system
+* Event-based detection via HTTP
+* Full edge deployment on Raspberry Pi
+
+---
+
+### ⚠️ In Progress
+
+* Stable MP4 recording (currently limited due to dual FFmpeg pipelines)
+* Detection tuning (false positives depending on camera configuration)
+
+---
+
+## 🔮 Future Improvements
+
+* Single pipeline for streaming + recording
+* Smart recording based on detection events
+* Automatic storage cleanup
+* Snapshot persistence improvements
+* Alerting / notifications system
+
+---
+
+## 🧠 Key Idea
+
+This project demonstrates a complete **edge video processing system**, combining:
+
+* hardware integration (camera + Raspberry Pi)
+* real-time video processing
+* web-based control interface
+* event-driven architecture
+
+---
+
+## 📄 License
+
+(You can add a license here if needed)
