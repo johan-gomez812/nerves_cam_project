@@ -49,7 +49,8 @@ defmodule CamProject.MixProject do
       {:membrane_core, "~> 1.1"},
       {:membrane_rtsp_plugin, "~> 0.2"},
       {:membrane_http_adaptive_stream_plugin, "~> 0.18"},
-      {:membrane_h264_plugin, "~> 0.9"}
+      {:membrane_h264_plugin, "~> 0.9"},
+      {:membrane_mp4_plugin, "~> 0.35"}
     ]
   end
 

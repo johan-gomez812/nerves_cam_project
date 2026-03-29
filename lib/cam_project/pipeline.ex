@@ -210,14 +210,15 @@ defmodule CamProject.HLSPipeline do
         allowed_media_types: [:video]
       })
       |> child(:h264_parser, %Membrane.H264.Parser{
-        # Access-unit alignment is required by the HLS sink
+        # Access-unit alignment is required by the CMAF muxer
         output_alignment: :au
       })
+      |> child(:cmaf_muxer, Membrane.MP4.Muxer.CMAF)
       |> via_in(Pad.ref(:input, 0),
         options: [segment_duration: @segment_duration]
       )
       |> child(:hls_sink, %Membrane.HTTPAdaptiveStream.Sink{
-        manifest_config: %Membrane.HTTPAdaptiveStream.Manifest.Config{
+        manifest_config: %Membrane.HTTPAdaptiveStream.Sink.ManifestConfig{
           module: Membrane.HTTPAdaptiveStream.HLS,
           name: "stream"
         },
