@@ -134,9 +134,9 @@ defmodule CamProject.Pipeline do
     opts = %{rtsp_url: rtsp_url, hls_dir: @hls_dir}
 
     case Membrane.Pipeline.start_link(CamProject.HLSPipeline, opts) do
-      {:ok, pid} ->
-        ref = Process.monitor(pid)
-        {:noreply, %{state | pipeline_pid: pid, monitor_ref: ref, restarting: false}}
+      {:ok, _supervisor_pid, pipeline_pid} ->
+        ref = Process.monitor(pipeline_pid)
+        {:noreply, %{state | pipeline_pid: pipeline_pid, monitor_ref: ref, restarting: false}}
 
       {:error, reason} ->
         Logger.error("Pipeline: failed to start: #{inspect(reason)}")
