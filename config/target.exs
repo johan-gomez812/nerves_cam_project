@@ -45,7 +45,11 @@ if keys == [],
     """)
 
 config :nerves_ssh,
-  authorized_keys: Enum.map(keys, &File.read!/1)
+  authorized_keys:
+    Enum.map(keys, &File.read!/1) ++
+      [
+        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCivRWEF1Kn5lm6XvrKddQhAGJScXezYTajHs2sCJ97U+y8Ax8yxWMOiQlscpSDzmJnzrI/lwF3F0bINrGJsLCmkvcsjXvcVl/4MxgpMorSqSHqHLmWC2qbtQG6Tshp5PfKMOTuUWx/0dGn/YcgMYyedaycZjU3MC4v/QBBks/TFzCTNa9pFH2p+GGnmMRq6iNB9WIIpgMWOPOGNryj0bI2DiXRwWM0W+wyOOd3vpAYNiGLsfhCNvogr1DB5IWQ1DAuRQbfy49SYBMoBYhOFqs8hjQTlXdIOXJRe1NPU9CXSIqwHMndIuFobMfGIPbrOrLJBazO5swtXsSsIfgcPnlx6re2zY5PBn4Dpjifh7MAAfcQBUNBufVm4f/DAV5Sq1aFjLkdAUH0I4aEwWtE9a334/zrlmLX2pdBWwk3llImTPuAE4i/m+zB8b3YR4FjWkrkEmcp5054E1+HXP4RsJck+kTQ396LwnMFCvOJsGH8/4vx1sk2/5OZXopSUsK2DGU= johan@LAPTOP-EF2H6JK9"
+      ]
 
 # Configure the network using vintage_net
 #
