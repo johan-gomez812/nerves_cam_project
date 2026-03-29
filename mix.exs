@@ -43,7 +43,13 @@ defmodule CamProject.MixProject do
       {:plug_cowboy, "~> 2.7"},
       {:jason, "~> 1.4"},
       
-      {:nerves_system_rpi5, "~> 0.6.4", targets: :rpi5, runtime: false}
+      {:nerves_system_rpi5, "~> 0.6.4", targets: :rpi5, runtime: false},
+
+      # Membrane pipeline (replaces LiveStream FFmpeg port)
+      {:membrane_core, "~> 1.1"},
+      {:membrane_rtsp_plugin, "~> 0.2"},
+      {:membrane_http_adaptive_stream_plugin, "~> 0.18"},
+      {:membrane_h264_plugin, "~> 0.9"}
     ]
   end
 

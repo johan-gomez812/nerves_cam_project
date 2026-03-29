@@ -525,7 +525,7 @@ defmodule CamProject.WebRouter do
   get "/health" do
     stream_status =
       try do
-        CamProject.LiveStream.status()
+        CamProject.Pipeline.status()
       catch
         _, _ ->
           %{
@@ -604,7 +604,7 @@ defmodule CamProject.WebRouter do
   end
 
   post "/api/stream/start" do
-    result = CamProject.LiveStream.start_stream()
+    result = CamProject.Pipeline.start_stream()
     body = Jason.encode!(%{ok: true, result: inspect(result)})
 
     conn
@@ -613,7 +613,7 @@ defmodule CamProject.WebRouter do
   end
 
   post "/api/stream/stop" do
-    result = CamProject.LiveStream.stop_stream()
+    result = CamProject.Pipeline.stop_stream()
     body = Jason.encode!(%{ok: true, result: inspect(result)})
 
     conn
@@ -622,7 +622,7 @@ defmodule CamProject.WebRouter do
   end
 
   post "/api/stream/restart" do
-    result = CamProject.LiveStream.restart()
+    result = CamProject.Pipeline.restart()
     body = Jason.encode!(%{ok: true, result: inspect(result)})
 
     conn
