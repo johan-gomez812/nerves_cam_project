@@ -213,11 +213,18 @@ defmodule CamProject.HLSPipeline do
         # Access-unit alignment is required by the HLS sink
         output_alignment: :au
       })
+      |> via_in(Pad.ref(:input, 0),
+        options: [segment_duration: @segment_duration]
+      )
       |> child(:hls_sink, %Membrane.HTTPAdaptiveStream.Sink{
-        manifest_module: Membrane.HTTPAdaptiveStream.HLS,
-        manifest_name: "stream",
-        target_window_duration: @window_duration,
-        target_segment_duration: @segment_duration,
+        manifest_config: %Membrane.HTTPAdaptiveStream.Manifest.Config{
+          module: Membrane.HTTPAdaptiveStream.HLS,
+          name: "stream"
+        },
+        track_config: %Membrane.HTTPAdaptiveStream.Sink.TrackConfig{
+          target_window_duration: @window_duration,
+          mode: :live
+        },
         storage: %Membrane.HTTPAdaptiveStream.Storages.FileStorage{
           directory: hls_dir
         }
