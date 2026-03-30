@@ -204,10 +204,8 @@ defmodule CamProject.HLSPipeline do
   @impl true
   def handle_init(_ctx, %{rtsp_url: rtsp_url, hls_dir: hls_dir}) do
     spec =
-      child(:source, %Membrane.RTSP.Source{
-        stream_uri: rtsp_url,
-        transport: :tcp,
-        allowed_media_types: [:video]
+      child(:source, %CamProject.RTSPSource{
+        rtsp_url: rtsp_url
       })
       |> child(:h264_parser, %Membrane.H264.Parser{
         # Access-unit alignment is required by the CMAF muxer
