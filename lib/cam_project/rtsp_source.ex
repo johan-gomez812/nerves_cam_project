@@ -70,7 +70,6 @@ defmodule CamProject.RTSPSource do
          {:ok, _} <- RTSP.play(session) do
       socket = RTSP.get_socket(session)
       :ok = RTSP.transfer_socket_control(session, self())
-      :inet.setopts(socket, active: true)
 
       Logger.info("RTSPSource: stream playing, socket transferred")
 

@@ -208,8 +208,9 @@ defmodule CamProject.HLSPipeline do
         rtsp_url: rtsp_url
       })
       |> child(:h264_parser, %Membrane.H264.Parser{
-        # Access-unit alignment is required by the CMAF muxer
-        output_alignment: :au
+        # CMAF muxer requires AVC-framed access units, not Annex B
+        output_alignment: :au,
+        output_stream_structure: :avc1
       })
       |> child(:cmaf_muxer, Membrane.MP4.Muxer.CMAF)
       |> via_in(Pad.ref(:input, 0),
