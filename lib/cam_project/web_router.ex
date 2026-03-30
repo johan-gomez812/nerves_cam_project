@@ -578,8 +578,8 @@ defmodule CamProject.WebRouter do
     body =
       Jason.encode!(%{
         status: "ok",
-        stream: stream_status,
-        recorder: recorder_status,
+        stream: Map.update(stream_status, :last_exit_reason, nil, &inspect/1),
+        recorder: Map.delete(recorder_status, :task_pid),
         detection: detection,
         timestamp: DateTime.utc_now() |> DateTime.to_iso8601()
       })

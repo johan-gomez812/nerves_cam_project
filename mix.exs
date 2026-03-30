@@ -47,7 +47,7 @@ defmodule CamProject.MixProject do
 
       # Membrane pipeline (replaces LiveStream FFmpeg port)
       {:membrane_core, "~> 1.1"},
-      {:membrane_rtsp_plugin, "~> 0.2"},
+      {:membrane_rtsp_plugin, "~> 0.3"},
       {:membrane_http_adaptive_stream_plugin, "~> 0.18"},
       {:membrane_h26x_plugin, "~> 0.10"},
       {:membrane_mp4_plugin, "~> 0.35"}
