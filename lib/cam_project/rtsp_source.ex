@@ -70,8 +70,9 @@ defmodule CamProject.RTSPSource do
          {:ok, _} <- RTSP.play(session) do
       socket = RTSP.get_socket(session)
       :ok = RTSP.transfer_socket_control(session, self())
+      :inet.setopts(socket, active: true)
 
-      Logger.info("RTSPSource: stream playing — RTSP handshake complete, socket transferred, waiting for RTP data")
+      Logger.info("RTSPSource: stream playing — RTSP handshake complete, socket=#{inspect(socket)}, waiting for RTP data")
 
       stream_format = %H264{stream_structure: :annexb, alignment: :nalu}
 
