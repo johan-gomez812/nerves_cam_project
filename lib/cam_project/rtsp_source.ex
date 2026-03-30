@@ -70,7 +70,8 @@ defmodule CamProject.RTSPSource do
          {:ok, _} <- RTSP.play(session) do
       socket = RTSP.get_socket(session)
       :ok = RTSP.transfer_socket_control(session, self())
-      :inet.setopts(socket, active: true)
+      :ok = :gen_tcp.controlling_process(socket, self())
+      :inet.setopts(socket, [active: true, packet: :raw, mode: :binary])
 
       Logger.info("RTSPSource: stream playing — RTSP handshake complete, socket=#{inspect(socket)}, waiting for RTP data")
 
