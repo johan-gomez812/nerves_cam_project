@@ -17,6 +17,8 @@ defmodule CamProject.RTSPSource do
 
   use Membrane.Source
 
+  import Bitwise
+
   require Logger
 
   alias Membrane.{Buffer, H264, RTSP}
