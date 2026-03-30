@@ -71,7 +71,7 @@ defmodule CamProject.RTSPSource do
       socket = RTSP.get_socket(session)
       :ok = RTSP.transfer_socket_control(session, self())
 
-      Logger.info("RTSPSource: stream playing, socket transferred")
+      Logger.info("RTSPSource: stream playing — RTSP handshake complete, socket transferred, waiting for RTP data")
 
       stream_format = %H264{stream_structure: :annexb, alignment: :nalu}
 
@@ -94,6 +94,8 @@ defmodule CamProject.RTSPSource do
     {nalus, tcp_buf, fu_a_buf} =
       parse_tcp_stream(state.tcp_buf <> data, state.fu_a_buf, [])
 
+    Logger.info("RTSPSource: tcp #{byte_size(data)} bytes received, #{length(nalus)} NALUs extracted, #{byte_size(tcp_buf)} bytes buffered")
+
     buffers =
       Enum.map(nalus, fn nalu ->
         {:buffer, {:output, %Buffer{payload: @annexb_prefix <> nalu}}}
@@ -104,7 +106,7 @@ defmodule CamProject.RTSPSource do
 
   @impl true
   def handle_info({:tcp_closed, _socket}, _ctx, state) do
-    Logger.warning("RTSPSource: TCP connection closed by server")
+    Logger.info("RTSPSource: TCP connection closed by server — sending end_of_stream")
     {[end_of_stream: :output], state}
   end
 
