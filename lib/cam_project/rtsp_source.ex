@@ -91,6 +91,23 @@ defmodule CamProject.RTSPSource do
     end
   end
 
+    @impl true
+  def handle_info({:tcp, _socket, _data}, _ctx, state) do
+    {[], state}
+  end
+
+  @impl true
+  def handle_info({:tcp_closed, _socket}, _ctx, state) do
+    Logger.info("RTSPSource: TCP connection closed")
+    {[end_of_stream: :output], %{state | socket: nil}}
+  end
+
+  @impl true
+  def handle_info({:tcp_error, _socket, reason}, _ctx, state) do
+    Logger.error("RTSPSource: TCP error #{inspect(reason)}")
+    {[end_of_stream: :output], %{state | socket: nil}}
+  end
+
   @impl true
   def handle_info(:keepalive, _ctx, state) do
     Process.send_after(self(), :keepalive, 30_000)
@@ -111,7 +128,7 @@ defmodule CamProject.RTSPSource do
         Logger.info("RTSPSource: poll got #{byte_size(data)} bytes, #{length(nalus)} NALUs")
         now = System.monotonic_time(:nanosecond)
         buffers = nalus |> Enum.with_index() |> Enum.map(fn {nalu, i} ->
-          {:buffer, {:output, %Buffer{payload: @annexb_prefix <> nalu, pts: now + i, dts: now + i}}}
+          {:buffer, {:output, %Buffer{payload: @annexb_prefix <> nalu, pts: now + i * 1_000_000, dts: now + i * 1_000_000}}}
         end)
         Process.send_after(self(), :poll_socket, 10)
         {buffers, %{state | tcp_buf: tcp_buf, fu_a_buf: fu_a_buf}}
