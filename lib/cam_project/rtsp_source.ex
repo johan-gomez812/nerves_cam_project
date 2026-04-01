@@ -109,8 +109,9 @@ defmodule CamProject.RTSPSource do
         {nalus, tcp_buf, fu_a_buf} =
           parse_tcp_stream(state.tcp_buf <> data, state.fu_a_buf, [])
         Logger.info("RTSPSource: poll got #{byte_size(data)} bytes, #{length(nalus)} NALUs")
-        buffers = Enum.map(nalus, fn nalu ->
-          {:buffer, {:output, %Buffer{payload: @annexb_prefix <> nalu}}}
+        now = System.monotonic_time(:nanosecond)
+        buffers = nalus |> Enum.with_index() |> Enum.map(fn {nalu, i} ->
+          {:buffer, {:output, %Buffer{payload: @annexb_prefix <> nalu, pts: now + i, dts: now + i}}}
         end)
         Process.send_after(self(), :poll_socket, 10)
         {buffers, %{state | tcp_buf: tcp_buf, fu_a_buf: fu_a_buf}}
