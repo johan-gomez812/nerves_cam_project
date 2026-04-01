@@ -74,6 +74,7 @@ defmodule CamProject.RTSPSource do
       Logger.info("RTSPSource: socket stats after transfer: #{inspect(socket_info)}")
       :gen_tcp.controlling_process(socket, self())
       :inet.setopts(socket, [active: false, packet: :raw, mode: :binary])
+      Process.send_after(self(), :keepalive, 30_000)
       Process.send_after(self(), :poll_socket, 10)
 
 
@@ -87,6 +88,18 @@ defmodule CamProject.RTSPSource do
       {:error, reason} ->
         raise "RTSPSource: failed to set up RTSP stream: #{inspect(reason)}"
     end
+  end
+
+    @impl true
+  def handle_info(:keepalive, _ctx, %{session: nil} = state) do
+    {[], state}
+  end
+
+  @impl true
+  def handle_info(:keepalive, _ctx, state) do
+    RTSP.get_parameter(state.session, state.rtsp_url, [])
+    Process.send_after(self(), :keepalive, 30_000)
+    {[], state}
   end
 
   @impl true
