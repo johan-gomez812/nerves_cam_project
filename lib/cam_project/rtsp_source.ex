@@ -71,8 +71,9 @@ defmodule CamProject.RTSPSource do
       socket = RTSP.get_socket(session)
       :ok = RTSP.transfer_socket_control(session, self())
       :ok = :gen_tcp.controlling_process(socket, self())
-      Process.send_after(self(), :poll_socket, 10)
       :inet.setopts(socket, [active: false, packet: :raw, mode: :binary])
+      Process.send_after(self(), :poll_socket, 10)
+
 
       Logger.info("RTSPSource: stream playing — RTSP handshake complete, socket=#{inspect(socket)}, waiting for RTP data")
 
@@ -88,7 +89,7 @@ defmodule CamProject.RTSPSource do
 
   @impl true
   def handle_info(:poll_socket, _ctx, %{socket: nil} = state) do
-    {:noreply, state}
+    {[], state}
   end
 
   @impl true
@@ -105,7 +106,7 @@ defmodule CamProject.RTSPSource do
         {buffers, %{state | tcp_buf: tcp_buf, fu_a_buf: fu_a_buf}}
       {:error, :timeout} ->
         Process.send_after(self(), :poll_socket, 10)
-        {:noreply, state}
+        {[], state}
       {:error, reason} ->
         Logger.error("RTSPSource: poll error #{inspect(reason)}")
         {[end_of_stream: :output], %{state | socket: nil}}
