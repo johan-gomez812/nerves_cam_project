@@ -71,6 +71,9 @@ defmodule CamProject.RTSPSource do
       socket = RTSP.get_socket(session)
       :ok = RTSP.transfer_socket_control(session, self())
       socket_info = :inet.getstat(socket)
+      # Stop the RTSP session process but keep the socket alive
+      Process.unlink(session)
+      GenServer.stop(session, :normal, 1000)
       Logger.info("RTSPSource: socket stats after transfer: #{inspect(socket_info)}")
       :ok = :gen_tcp.controlling_process(socket, self())
       :inet.setopts(socket, [active: false, packet: :raw, mode: :binary])
