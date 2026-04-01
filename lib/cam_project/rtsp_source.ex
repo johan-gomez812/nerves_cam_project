@@ -97,7 +97,7 @@ defmodule CamProject.RTSPSource do
 
   @impl true
   def handle_info(:keepalive, _ctx, state) do
-    RTSP.get_parameter(state.session, state.rtsp_url, [])
+    RTSP.get_parameter(state.session, state.rtsp_url, "")
     Process.send_after(self(), :keepalive, 30_000)
     {[], state}
   end
