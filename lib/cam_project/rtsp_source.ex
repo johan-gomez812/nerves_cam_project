@@ -71,7 +71,8 @@ defmodule CamProject.RTSPSource do
       socket = RTSP.get_socket(session)
       :ok = RTSP.transfer_socket_control(session, self())
       :ok = :gen_tcp.controlling_process(socket, self())
-      :inet.setopts(socket, [active: true, packet: :raw, mode: :binary])
+      Process.send_after(self(), :poll_socket, 10)
+      :inet.setopts(socket, [active: false, packet: :raw, mode: :binary])
 
       Logger.info("RTSPSource: stream playing — RTSP handshake complete, socket=#{inspect(socket)}, waiting for RTP data")
 
@@ -86,37 +87,40 @@ defmodule CamProject.RTSPSource do
   end
 
   @impl true
+  def handle_info(:poll_socket, _ctx, %{socket: nil} = state) do
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(:poll_socket, _ctx, state) do
+    case :gen_tcp.recv(state.socket, 0, 100) do
+      {:ok, data} ->
+        {nalus, tcp_buf, fu_a_buf} =
+          parse_tcp_stream(state.tcp_buf <> data, state.fu_a_buf, [])
+        Logger.info("RTSPSource: poll got #{byte_size(data)} bytes, #{length(nalus)} NALUs")
+        buffers = Enum.map(nalus, fn nalu ->
+          {:buffer, {:output, %Buffer{payload: @annexb_prefix <> nalu}}}
+        end)
+        Process.send_after(self(), :poll_socket, 10)
+        {buffers, %{state | tcp_buf: tcp_buf, fu_a_buf: fu_a_buf}}
+      {:error, :timeout} ->
+        Process.send_after(self(), :poll_socket, 10)
+        {:noreply, state}
+      {:error, reason} ->
+        Logger.error("RTSPSource: poll error #{inspect(reason)}")
+        {[end_of_stream: :output], %{state | socket: nil}}
+    end
+  end
+
+
+
+  @impl true
   def handle_terminate_request(_ctx, %{session: session} = state) do
     if session, do: RTSP.close(session)
     {[terminate: :normal], state}
   end
 
-  @impl true
-  def handle_info({:tcp, _socket, data}, _ctx, state) do
-    {nalus, tcp_buf, fu_a_buf} =
-      parse_tcp_stream(state.tcp_buf <> data, state.fu_a_buf, [])
 
-    Logger.info("RTSPSource: tcp #{byte_size(data)} bytes received, #{length(nalus)} NALUs extracted, #{byte_size(tcp_buf)} bytes buffered")
-
-    buffers =
-      Enum.map(nalus, fn nalu ->
-        {:buffer, {:output, %Buffer{payload: @annexb_prefix <> nalu}}}
-      end)
-
-    {buffers, %{state | tcp_buf: tcp_buf, fu_a_buf: fu_a_buf}}
-  end
-
-  @impl true
-  def handle_info({:tcp_closed, _socket}, _ctx, state) do
-    Logger.info("RTSPSource: TCP connection closed by server — sending end_of_stream")
-    {[end_of_stream: :output], state}
-  end
-
-  @impl true
-  def handle_info({:tcp_error, _socket, reason}, _ctx, state) do
-    Logger.error("RTSPSource: TCP error: #{inspect(reason)}")
-    {[end_of_stream: :output], state}
-  end
 
   # ---------------------------------------------------------------------------
   # RTSP interleaved frame parsing
