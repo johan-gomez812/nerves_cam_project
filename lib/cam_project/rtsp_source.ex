@@ -230,25 +230,23 @@ defmodule CamProject.RTSPSource do
   # SDP parsing — find the video media section's control attribute
   # ---------------------------------------------------------------------------
 
-  defp video_track_control(%Response{body: sdp}) when is_binary(sdp) do
-    result =
-      sdp
-      |> String.split(~r/\r?\n/)
-      |> Enum.reduce({false, nil}, fn
-        "m=video" <> _, {_in_video, ctrl} -> {true, ctrl}
-        "m=" <> _, {_in_video, ctrl}      -> {false, ctrl}
-        "a=control:" <> val, {true, _}    -> {true, String.trim(val)}
-        _, acc                            -> acc
+    defp video_track_control(%Response{body: %ExSDP{} = sdp}) do
+    video_track = Enum.find(sdp.media, fn m -> m.type == :video end)
+
+    control =
+      video_track &&
+      Enum.find_value(video_track.attributes, fn
+        {"control", val} -> val
+        _ -> nil
       end)
 
-    case result do
-      {_, track} when is_binary(track) ->
-        Logger.info("RTSPSource: video track control = #{track}")
-        track
-
-      _ ->
-        Logger.warning("RTSPSource: no video track found in SDP, defaulting to trackID=0")
+    case control do
+      nil ->
+        Logger.warning("RTSPSource: no control attribute found, defaulting to trackID=0")
         "trackID=0"
+      val ->
+        Logger.info("RTSPSource: video track control = #{val}")
+        val
     end
   end
 
