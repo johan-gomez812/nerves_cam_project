@@ -61,8 +61,9 @@ defmodule CamProject.RTSPSource do
     Logger.info("RTSPSource: connecting to #{state.rtsp_url}")
 
     with {:ok, session} <- RTSP.start_link(state.rtsp_url),
-         {:ok, describe_resp} <- RTSP.describe(session, [{"Accept", "application/sdp"}]),
-         track_path = video_track_control(describe_resp),
+     {:ok, describe_resp} <- RTSP.describe(session, [{"Accept", "application/sdp"}]),
+     _ = Logger.info("RTSPSource: SDP response body = #{inspect(describe_resp.body)}"),
+     track_path = video_track_control(describe_resp),
          {:ok, _} <-
            RTSP.setup(session, track_path, [
              {"Transport", "RTP/AVP/TCP;unicast;interleaved=0-1"}
