@@ -70,6 +70,8 @@ defmodule CamProject.RTSPSource do
          {:ok, _} <- RTSP.play(session) do
       socket = RTSP.get_socket(session)
       :ok = RTSP.transfer_socket_control(session, self())
+      socket_info = :inet.getstat(socket)
+      Logger.info("RTSPSource: socket stats after transfer: #{inspect(socket_info)}")
       :ok = :gen_tcp.controlling_process(socket, self())
       :inet.setopts(socket, [active: false, packet: :raw, mode: :binary])
       Process.send_after(self(), :poll_socket, 10)
