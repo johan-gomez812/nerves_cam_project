@@ -24,7 +24,7 @@ defmodule CamProject.RTSPSource do
 
   @impl true
   def handle_playing(_ctx, state) do
-    Logger.info("RTSPSource: conectando a #{state.rtsp_url}")
+    Logger.info("RTSPSource: Conectando a #{state.rtsp_url}")
 
     with {:ok, session} <- RTSP.start_link(state.rtsp_url),
          {:ok, describe_resp} <- RTSP.describe(session, [{"Accept", "application/sdp"}]),
@@ -36,48 +36,43 @@ defmodule CamProject.RTSPSource do
       :ok = RTSP.transfer_socket_control(session, self())
       :gen_tcp.controlling_process(socket, self())
 
-      # Volvemos a active: true para que sea más fluido en la Raspberry
-      :inet.setopts(socket, [active: true, packet: :raw, mode: :binary])
+      :inet.setopts(socket, [active: false, packet: :raw, mode: :binary])
+      send(self(), :poll_socket)
 
-      Logger.info("RTSPSource: ¡Streaming activo! Socket: #{inspect(socket)}")
+      Logger.info("RTSPSource: Setup completado.")
 
       stream_format = %H264{stream_structure: :annexb, alignment: :nalu}
       {[stream_format: {:output, stream_format}], %{state | session: session, socket: socket}}
     else
-      {:error, reason} -> raise "RTSPSource: error en setup: #{inspect(reason)}"
+      {:error, reason} -> raise "RTSPSource: Error en setup: #{inspect(reason)}"
     end
   end
 
-  # Receptor de datos TCP (Active: true)
   @impl true
-  def handle_info({:tcp, _socket, data}, _ctx, state) do
-    {nalus, tcp_buf, fu_a_buf} = parse_tcp_stream(state.tcp_buf <> data, state.fu_a_buf, [])
+  def handle_info(:poll_socket, _ctx, state) do
+    case :gen_tcp.recv(state.socket, 0, 100) do
+      {:ok, data} ->
+        {nalus, tcp_buf, fu_a_buf} = parse_tcp_stream(state.tcp_buf <> data, state.fu_a_buf, [])
 
-    # IMPORTANTE: No ponemos PTS/DTS manuales aquí.
-    # Dejamos que el Parser los calcule.
-    buffers = Enum.map(nalus, fn nalu ->
-      {:buffer, {:output, %Buffer{payload: @annexb_prefix <> nalu}}}
-    end)
+        buffers = Enum.map(nalus, fn nalu ->
+          {:buffer, {:output, %Buffer{payload: @annexb_prefix <> nalu}}}
+        end)
 
-    {buffers, %{state | tcp_buf: tcp_buf, fu_a_buf: fu_a_buf}}
+        send(self(), :poll_socket)
+        {buffers, %{state | tcp_buf: tcp_buf, fu_a_buf: fu_a_buf}}
+
+      {:error, :timeout} ->
+        Process.send_after(self(), :poll_socket, 10)
+        {[], state}
+
+      {:error, reason} ->
+        Logger.error("RTSPSource: Error fatal en socket: #{inspect(reason)}")
+        {[end_of_stream: :output], %{state | socket: nil}}
+    end
   end
 
-  @impl true
-  def handle_info({:tcp_closed, _socket}, _ctx, state) do
-    Logger.info("RTSPSource: Conexión TCP cerrada")
-    {[end_of_stream: :output], %{state | socket: nil}}
-  end
-
-  @impl true
-  def handle_terminate_request(_ctx, %{session: session} = state) do
-    if session, do: RTSP.close(session)
-    {[terminate: :normal], state}
-  end
-
-  # --- Helpers de parsing ---
-
-  defp parse_tcp_stream(<<0x24, channel, length::16, frame::binary-size(length), rest::binary>>, fu_a_buf, acc) do
-    {nalus, fu_a_buf} = if channel == 0, do: depacketize_rtp(frame, fu_a_buf), else: {[], fu_a_buf}
+  defp parse_tcp_stream(<<0x24, _channel, length::16, frame::binary-size(length), rest::binary>>, fu_a_buf, acc) do
+    {nalus, fu_a_buf} = depacketize_rtp(frame, fu_a_buf)
     parse_tcp_stream(rest, fu_a_buf, acc ++ nalus)
   end
   defp parse_tcp_stream(rest, fu_a_buf, acc), do: {acc, rest, fu_a_buf}
