@@ -14,6 +14,19 @@ defmodule CamProject.Hardware.CameraStream do
     GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
   end
 
+    def start do
+    case Process.whereis(__MODULE__) do
+      nil -> start_link([])
+      _pid -> {:ok, :already_running}
+    end
+  end
+
+  def stop do
+    if Process.whereis(__MODULE__) do
+      GenServer.stop(__MODULE__)
+    end
+  end
+
   @impl true
   def init(_) do
     {:ok, listen_socket} = :gen_tcp.listen(@http_port, [
