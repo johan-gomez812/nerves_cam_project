@@ -21,9 +21,10 @@ defmodule CamProject.Hardware.CameraStream do
     end
   end
 
-  def stop do
-    if Process.whereis(__MODULE__) do
-      GenServer.stop(__MODULE__)
+    def stop do
+    case Process.whereis(__MODULE__) do
+      nil -> :ok
+      pid -> Process.exit(pid, :kill)
     end
   end
 
