@@ -42,7 +42,7 @@ defmodule CamProject.MixProject do
       {:nerves_pack, "~> 0.7"},
       {:plug_cowboy, "~> 2.7"},
       {:jason, "~> 1.4"},
-      
+
       {:nerves_system_rpi5, "~> 0.6.4", targets: :rpi5, runtime: false},
 
       # Membrane pipeline (replaces LiveStream FFmpeg port)
@@ -60,7 +60,7 @@ defmodule CamProject.MixProject do
       cookie: "#{@app}_cookie",
       include_erts: &Nerves.Release.erts/0,
       steps: [&Nerves.Release.init/1, :assemble],
-      
+      fwup_conf: "fwup.conf"
     ]
   end
 
