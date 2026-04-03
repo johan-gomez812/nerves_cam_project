@@ -1,69 +1,96 @@
 defmodule CamProject.Hardware.CameraStream do
   @moduledoc """
-  Streams video from Camera Module 3 via TCP using libcamera-vid.
+  Streams Camera Module 3 via HTTP MJPEG (compatible with VLC and browsers).
+  Access at http://192.168.1.178:8555
   """
   use GenServer
   require Logger
 
-  @port 8554
+  @http_port 8555
   @libcamera "/usr/bin/libcamera-vid"
+  @boundary "mjpegstream"
 
   def start_link(_opts) do
     GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
   end
 
-  def start_stream do
-    GenServer.call(__MODULE__, :start_stream)
-  end
-
-  def stop_stream do
-    GenServer.call(__MODULE__, :stop_stream)
-  end
-
   @impl true
   def init(_) do
-    {:ok, listen_socket} = :gen_tcp.listen(@port, [:binary, active: false, reuseaddr: true])
-    Logger.info("CameraStream: listening on port #{@port}")
+    {:ok, listen_socket} = :gen_tcp.listen(@http_port, [
+      :binary, active: false, reuseaddr: true, packet: :http
+    ])
+    Logger.info("CameraStream: HTTP MJPEG server on port #{@http_port}")
     send(self(), :accept)
-    {:ok, %{listen_socket: listen_socket, client: nil, port: nil}}
+    {:ok, %{listen_socket: listen_socket}}
   end
 
   @impl true
   def handle_info(:accept, state) do
-    Logger.info("CameraStream: waiting for client connection")
     {:ok, client} = :gen_tcp.accept(state.listen_socket)
-    Logger.info("CameraStream: client connected, starting camera")
-    port = Port.open({:spawn_executable, @libcamera}, [
-      :binary, :exit_status,
-      args: ["-t", "0", "--width", "1280", "--height", "720",
-             "--codec", "mjpeg", "--nopreview", "-o", "-"]
-    ])
-    {:noreply, %{state | client: client, port: port}}
-  end
-
-  @impl true
-  def handle_info({port, {:data, data}}, %{port: port, client: client} = state) do
-    :gen_tcp.send(client, data)
+    spawn(fn -> handle_client(client) end)
+    send(self(), :accept)
     {:noreply, state}
   end
 
-  @impl true
-  def handle_info({:tcp_closed, _}, state) do
-    Logger.info("CameraStream: client disconnected")
-    if state.port, do: Port.close(state.port)
-    send(self(), :accept)
-    {:noreply, %{state | client: nil, port: nil}}
+  defp handle_client(client) do
+    # Read HTTP request
+    :gen_tcp.recv(client, 0, 5000)
+
+    # Send HTTP MJPEG headers
+    headers = "HTTP/1.0 200 OK\r\n" <>
+              "Content-Type: multipart/x-mixed-replace;boundary=#{@boundary}\r\n" <>
+              "Cache-Control: no-cache\r\n" <>
+              "\r\n"
+    :gen_tcp.send(client, headers)
+    :inet.setopts(client, packet: :raw)
+
+    # Start libcamera and stream frames
+    port = Port.open({:spawn_executable, @libcamera}, [
+      :binary, :exit_status,
+      args: ["-t", "0", "--width", "640", "--height", "480",
+             "--codec", "mjpeg", "--nopreview", "-o", "-", "--flush"]
+    ])
+
+    stream_frames(client, port, <<>>)
   end
 
-  @impl true
-  def handle_info({port, {:exit_status, status}}, %{port: port} = state) do
-    Logger.info("CameraStream: camera exited with #{status}")
-    {:noreply, %{state | port: nil}}
+  defp stream_frames(client, port, buf) do
+    receive do
+      {^port, {:data, data}} ->
+        new_buf = buf <> data
+        {frames, remaining} = extract_frames(new_buf)
+        Enum.each(frames, fn frame ->
+          header = "--#{@boundary}\r\nContent-Type: image/jpeg\r\nContent-Length: #{byte_size(frame)}\r\n\r\n"
+          :gen_tcp.send(client, header <> frame <> "\r\n")
+        end)
+        stream_frames(client, port, remaining)
+      {^port, {:exit_status, _}} ->
+        :gen_tcp.close(client)
+      {:tcp_closed, _} ->
+        Port.close(port)
+    end
   end
 
-  @impl true
-  def handle_call(:stop_stream, _from, state) do
-    if state.port, do: Port.close(state.port)
-    {:reply, :ok, %{state | port: nil}}
+  defp extract_frames(data) do
+    extract_frames(data, [])
   end
+
+  defp extract_frames(data, acc) do
+    case find_jpeg_frame(data) do
+      {:ok, frame, rest} -> extract_frames(rest, [frame | acc])
+      :incomplete -> {Enum.reverse(acc), data}
+    end
+  end
+
+  defp find_jpeg_frame(<<0xFF, 0xD8, _rest::binary>> = data) do
+    case :binary.match(data, <<0xFF, 0xD9>>, [{:scope, {2, byte_size(data) - 2}}]) do
+      {pos, _len} ->
+        frame_size = pos + 2
+        <<frame::binary-size(frame_size), rest::binary>> = data
+        {:ok, frame, rest}
+      :nomatch ->
+        :incomplete
+    end
+  end
+  defp find_jpeg_frame(_), do: :incomplete
 end
