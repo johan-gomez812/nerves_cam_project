@@ -7,7 +7,8 @@ defmodule CamProject.Application do
       {CamProject.DetectionStore, []},
       {CamProject.Recorder, []},
       {CamProject.WebServer, []},
-      {CamProject.Pipeline, []}
+      {CamProject.Pipeline, []},
+      {CamProject.Hardware.CameraStream, []}
     ]
 
     opts = [strategy: :one_for_one, name: CamProject.Supervisor]
