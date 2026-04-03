@@ -24,16 +24,17 @@ defmodule CamProject.Hardware.CameraModule do
     end
   end
 
-    def capture_video(duration_seconds \\ 5, output_path \\ nil) do
+      def capture_video(duration_seconds \\ 5, output_path \\ nil) do
     File.mkdir_p!(@snapshot_dir)
 
-    path = output_path || Path.join(@snapshot_dir, "cam_module_#{System.os_time(:second)}.h264")
+    path = output_path || Path.join(@snapshot_dir, "cam_module_#{System.os_time(:second)}.mjpeg")
 
     case System.cmd("/usr/bin/libcamera-vid", [
       "-o", path,
       "-t", "#{duration_seconds * 1000}",
       "--width", "1920",
-      "--height", "1080"
+      "--height", "1080",
+      "--codec", "mjpeg"
     ], stderr_to_stdout: true) do
       {_output, 0} ->
         Logger.info("CameraModule: video saved to #{path}")
