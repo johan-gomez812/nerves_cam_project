@@ -21,11 +21,18 @@ defmodule CamProject.Hardware.CameraStream do
     end
   end
 
-    def stop do
+      def stop do
     case Process.whereis(__MODULE__) do
       nil -> :ok
-      pid -> Process.exit(pid, :kill)
+      pid ->
+        GenServer.stop(pid, :normal, 5000)
     end
+  end
+
+  @impl true
+  def terminate(_reason, state) do
+    :gen_tcp.close(state.listen_socket)
+    :ok
   end
 
   @impl true
