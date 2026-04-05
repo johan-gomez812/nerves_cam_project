@@ -60,6 +60,7 @@ defmodule CamProject.MixProject do
       cookie: "#{@app}_cookie",
       include_erts: &Nerves.Release.erts/0,
       steps: [&Nerves.Release.init/1, :assemble],
+      nerves: [rootfs_additions: "rootfs_overlay"]
       
     ]
   end
