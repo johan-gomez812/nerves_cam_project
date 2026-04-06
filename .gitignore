@@ -9,3 +9,4 @@
 /tmp/
 
 priv/bin/ffmpeg
+rootfs_overlay/lib/firmware/
