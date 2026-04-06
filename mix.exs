@@ -42,8 +42,9 @@ defmodule CamProject.MixProject do
       {:nerves_pack, "~> 0.7"},
       {:plug_cowboy, "~> 2.7"},
       {:jason, "~> 1.4"},
+      {:circuits_uart, "~> 1.5"},	
       
-      {:nerves_system_rpi5, "~> 0.6.4", targets: :rpi5, runtime: false},
+      {:nerves_system_rpi5, "~> 2.0.1", targets: :rpi5, runtime: false},
 
       # Membrane pipeline (replaces LiveStream FFmpeg port)
       {:membrane_core, "~> 1.1"},
