@@ -1,0 +1,3 @@
+#!/bin/sh
+mkdir -p /var/lib/tailscale
+/usr/sbin/tailscaled --state=/var/lib/tailscale/tailscaled.state &
