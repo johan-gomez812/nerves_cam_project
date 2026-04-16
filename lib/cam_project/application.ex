@@ -30,7 +30,7 @@ defmodule CamProject.Application do
     :timer.sleep(3000)
     System.cmd("tailscale", [
       "up",
-      "--authkey=tskey-auth-krMzDM3ce211CNTRL-WPyuRVWvziDKQdrASPWKiDf95gA5weVM"
+      "--authkey=tskey-auth-kkSt4BST3c11CNTRL-fXcMKZgNaQAze2SUScj3QArZd4teqsp9U"
     ], stderr_to_stdout: true)
   end
 end
